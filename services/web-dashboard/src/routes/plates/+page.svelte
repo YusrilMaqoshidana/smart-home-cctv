@@ -1,0 +1,145 @@
+<script lang="ts">
+	import type { PageData, ActionData } from './$types';
+
+	let { data, form }: { data: PageData; form: ActionData } = $props();
+</script>
+
+<div class="space-y-6">
+	<!-- Header -->
+	<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+		<div>
+			<h1 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+				<i class="fa-solid fa-car text-cyan-400"></i> Whitelist Plat Kendaraan Indonesia (TNKB)
+			</h1>
+			<p class="text-xs text-slate-400">
+				Daftarkan nomor polisi mobil dan motor keluarga agar tidak memicu alarm kendaraan asing saat memasuki carport.
+			</p>
+		</div>
+	</div>
+
+	{#if form?.error}
+		<div class="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 flex items-center gap-2">
+			<i class="fa-solid fa-circle-exclamation"></i>
+			<span>{form.error}</span>
+		</div>
+	{/if}
+
+	<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+		<!-- Form Input Plat Nomor Baru -->
+		<div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4 h-fit">
+			<h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+				<i class="fa-solid fa-plus text-indigo-400"></i> Daftarkan Plat Baru
+			</h2>
+
+			<form method="POST" action="?/add" class="space-y-3.5">
+				<div>
+					<label for="plate-number" class="block text-xs font-medium text-slate-300 mb-1">Nomor Polisi (TNKB Indonesia)</label>
+					<input
+						id="plate-number"
+						type="text"
+						name="plate_number"
+						required
+						placeholder="Contoh: B 1234 XYZ"
+						class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs font-mono font-bold tracking-wider text-slate-100 focus:outline-none focus:border-cyan-500 uppercase"
+					/>
+					<p class="text-[10px] text-slate-500 mt-1">Pola: 1-2 Huruf + 1-4 Angka + 1-3 Huruf</p>
+				</div>
+
+				<div>
+					<label for="owner-label" class="block text-xs font-medium text-slate-300 mb-1">Keterangan / Pemilik Kendaraan</label>
+					<input
+						id="owner-label"
+						type="text"
+						name="owner_label"
+						required
+						placeholder="Contoh: Avanza Hitam Ayah, Scoopy Merah Ibu"
+						class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-cyan-500"
+					/>
+				</div>
+
+				<div>
+					<label for="vehicle-type" class="block text-xs font-medium text-slate-300 mb-1">Jenis Kendaraan</label>
+					<select
+						id="vehicle-type"
+						name="vehicle_type"
+						class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-cyan-500"
+					>
+						<option value="car">Mobil</option>
+						<option value="motorcycle">Sepeda Motor</option>
+					</select>
+				</div>
+
+				<button
+					type="submit"
+					class="w-full py-2.5 px-4 bg-cyan-600 hover:bg-cyan-500 rounded-xl text-xs font-semibold text-white shadow-lg shadow-cyan-600/30 transition-all flex items-center justify-center gap-2"
+				>
+					<i class="fa-solid fa-plus"></i> Simpan Plat ke Whitelist
+				</button>
+			</form>
+		</div>
+
+		<!-- Tabel Daftar Plat Terdaftar -->
+		<div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
+			<h2 class="text-sm font-semibold text-slate-200 flex items-center justify-between">
+				<span>Kendaraan Keluarga Terdaftar ({data.plates.length})</span>
+				<span class="text-[11px] font-mono text-cyan-400">YOLOv8 + Indonesian ANPR OCR</span>
+			</h2>
+
+			<div class="overflow-x-auto">
+				<table class="w-full text-left text-xs">
+					<thead class="text-slate-400 border-b border-slate-800 bg-slate-950/40">
+						<tr>
+							<th class="py-2.5 px-3">Plat Nomor</th>
+							<th class="py-2.5 px-3">Deskripsi</th>
+							<th class="py-2.5 px-3">Jenis</th>
+							<th class="py-2.5 px-3 text-right">Aksi</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-slate-800/60">
+						{#each data.plates as plate}
+							<tr class="hover:bg-slate-800/30">
+								<td class="py-3 px-3">
+									<span class="px-2.5 py-1 bg-black border border-slate-700 rounded text-xs font-mono font-bold text-white tracking-widest">
+										{plate.display_plate}
+									</span>
+								</td>
+								<td class="py-3 px-3 font-medium text-slate-200">
+									{plate.owner_label}
+								</td>
+								<td class="py-3 px-3 text-slate-400 uppercase font-mono text-[11px]">
+									<i class="fa-solid {plate.vehicle_type === 'car' ? 'fa-car' : 'fa-motorcycle'} mr-1 text-slate-500"></i>
+									{plate.vehicle_type}
+								</td>
+								<td class="py-3 px-3 text-right">
+									<form
+										method="POST"
+										action="?/delete"
+										class="inline"
+										onsubmit={(e) => {
+											if (!confirm(`Hapus plat ${plate.display_plate} dari whitelist?`)) e.preventDefault();
+										}}
+									>
+										<input type="hidden" name="id" value={plate.id} />
+										<button
+											type="submit"
+											aria-label="Hapus plat"
+											class="px-2.5 py-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+										>
+											<i class="fa-solid fa-trash"></i>
+										</button>
+									</form>
+								</td>
+							</tr>
+						{:else}
+							<tr>
+								<td colspan="4" class="py-8 text-center text-slate-500">
+									Belum ada plat kendaraan yang didaftarkan.
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>

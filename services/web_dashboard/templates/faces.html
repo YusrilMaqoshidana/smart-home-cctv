@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Kelola Wajah Keluarga{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <!-- Header & Description -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+        <i class="fa-solid fa-user-check text-emerald-400"></i> Whitelist Wajah Keluarga (InsightFace)
+      </h1>
+      <p class="text-xs text-slate-400">Daftarkan foto wajah anggota keluarga untuk menekan notifikasi darurat palsu saat beraktivitas normal.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Form Tambah Wajah Baru (SSR Form Submission) -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4 h-fit">
+      <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+        <i class="fa-solid fa-user-plus text-indigo-400"></i> Tambah Wajah Baru
+      </h2>
+
+      <form action="/faces/add" method="POST" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Nama Anggota Keluarga</label>
+          <input 
+            type="text" 
+            name="name" 
+            required 
+            placeholder="Contoh: Ayah, Ibu, Kakak" 
+            class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
+          >
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Peran / Status</label>
+          <select name="role" class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+            <option value="resident">Penghuni Rumah (Permanen)</option>
+            <option value="guest_temporary">Tamu Sementara</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Metode Pendaftaran</label>
+          <p class="text-[11px] text-slate-400 mb-2">Simulasi auto-generate vektor embedding 512-d (ArcFace standard).</p>
+          <input type="hidden" name="use_auto_vector" value="true">
+        </div>
+
+        <button type="submit" class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-semibold text-white shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2">
+          <i class="fa-solid fa-plus"></i> Simpan ke Whitelist
+        </button>
+      </form>
+    </div>
+
+    <!-- Tabel Daftar Wajah Terdaftar (SSR Rendered Table) -->
+    <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-4">
+      <h2 class="text-sm font-semibold text-slate-200 flex items-center justify-between">
+        <span>Daftar Wajah Aktif ({{ faces|length }})</span>
+        <span class="text-[11px] font-mono text-emerald-400">InsightFace 512-d Vector Store</span>
+      </h2>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="text-slate-400 border-b border-slate-800 bg-slate-950/40">
+            <tr>
+              <th class="py-2.5 px-3">Nama</th>
+              <th class="py-2.5 px-3">Status</th>
+              <th class="py-2.5 px-3">Masa Berlaku</th>
+              <th class="py-2.5 px-3 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/60">
+            {% for face in faces %}
+            <tr class="hover:bg-slate-800/30">
+              <td class="py-3 px-3 flex items-center gap-2.5 font-medium text-slate-200">
+                <span class="h-6 w-6 rounded-full bg-indigo-950 border border-indigo-500/30 flex items-center justify-center text-[10px]">👤</span>
+                {{ face.name }}
+              </td>
+              <td class="py-3 px-3">
+                <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 font-medium">
+                  {{ face.role }}
+                </span>
+              </td>
+              <td class="py-3 px-3 text-slate-400 text-[11px]">
+                {{ face.expire_at or 'Permanen' }}
+              </td>
+              <td class="py-3 px-3 text-right">
+                <form action="/faces/delete/{{ face.id }}" method="POST" class="inline" onsubmit="return confirm('Hapus wajah {{ face.name }} dari whitelist?')">
+                  <button type="submit" class="px-2.5 py-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="py-8 text-center text-slate-500">
+                Belum ada anggota keluarga yang didaftarkan. Gunakan formulir di sebelah kiri untuk menambah.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
