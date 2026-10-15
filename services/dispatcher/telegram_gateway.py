@@ -57,24 +57,34 @@ class TelegramGateway:
             f"📝 {description}\n"
         )
 
-        inline_keyboard: List[List[Dict[str, str]]] = [
-            [
-                {
-                    "text": "👋 Tandai Tamu (3 Jam)",
-                    "callback_data": f"whitelist_guest:{event_id or 'unknown'}",
-                },
-                {
-                    "text": "❌ Abaikan",
-                    "callback_data": f"dismiss:{event_id or 'unknown'}",
-                },
-            ],
-            [
+        buttons_row_1 = [
+            {
+                "text": "👋 Tandai Tamu (3 Jam)",
+                "callback_data": f"whitelist_guest:{event_id or 'unknown'}",
+            },
+            {
+                "text": "❌ Abaikan",
+                "callback_data": f"dismiss:{event_id or 'unknown'}",
+            },
+        ]
+
+        inline_keyboard: List[List[Dict[str, str]]] = [buttons_row_1]
+
+        # Telegram rejects 'localhost' URLs in inline buttons
+        if self.go2rtc_url and self.go2rtc_url.startswith("https://"):
+            inline_keyboard.append([
                 {
                     "text": "📹 Lihat Live Stream",
                     "url": f"{self.go2rtc_url}/stream.html?src={camera}",
                 }
-            ],
-        ]
+            ])
+        else:
+            inline_keyboard.append([
+                {
+                    "text": "📹 Request Snapshot Kamera",
+                    "callback_data": f"snapshot:{camera}",
+                }
+            ])
 
         payload = {
             "chat_id": self.chat_id,
