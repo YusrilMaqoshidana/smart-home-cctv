@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Home CCTV & Anomaly Guard (M70q Homelab)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+  <!-- Top Navbar -->
+  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="h-10 w-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+          <i class="fa-solid fa-shield-halved text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight tracking-wide">Smart Home Guard</h1>
+          <p class="text-xs text-slate-400">Lenovo ThinkCentre M70q &bull; Frigate 0.15 &bull; Dokploy</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> Sistem Normal (2 Kamera)
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+    <!-- Live Camera Feeds Grid -->
+    <section>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-semibold text-slate-200 flex items-center gap-2">
+          <i class="fa-solid fa-video text-indigo-400"></i> Pantauan Langsung (Live View)
+        </h2>
+        <span class="text-xs text-slate-400">WebRTC go2rtc Low Latency</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Cam 1: Halaman Depan -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div class="p-3 bg-slate-800/50 border-b border-slate-800 flex justify-between items-center text-xs">
+            <span class="font-semibold text-slate-300">Kamera 1: Halaman Depan & Pagar</span>
+            <span class="text-emerald-400 font-mono">1080p @ 7 FPS (VAAPI)</span>
+          </div>
+          <div class="aspect-video bg-black flex items-center justify-center relative group">
+            <i class="fa-solid fa-camera text-slate-700 text-4xl"></i>
+            <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <a href="http://localhost:1984/stream.html?src=halaman_depan" target="_blank" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-medium">Buka WebRTC Stream</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cam 2: Carport -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+          <div class="p-3 bg-slate-800/50 border-b border-slate-800 flex justify-between items-center text-xs">
+            <span class="font-semibold text-slate-300">Kamera 2: Carport & Garasi</span>
+            <span class="text-emerald-400 font-mono">1080p @ 7 FPS (VAAPI)</span>
+          </div>
+          <div class="aspect-video bg-black flex items-center justify-center relative group">
+            <i class="fa-solid fa-camera text-slate-700 text-4xl"></i>
+            <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <a href="http://localhost:1984/stream.html?src=carport" target="_blank" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xs font-medium">Buka WebRTC Stream</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Whitelist Management & Realtime Event Feeds -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Whitelist Wajah Keluarga -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-semibold text-slate-200 flex items-center gap-2 text-sm">
+            <i class="fa-solid fa-user-check text-emerald-400"></i> Wajah Keluarga
+          </h3>
+          <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">InsightFace</span>
+        </div>
+        <p class="text-xs text-slate-400">Mendaftarkan foto wajah penghuni untuk menekan false alarm darurat.</p>
+        <div class="space-y-2 max-h-60 overflow-y-auto pr-1" id="faceList">
+          <div class="p-3 bg-slate-800/40 border border-slate-800 rounded-xl flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="h-8 w-8 rounded-full bg-slate-700 flex items-center justify-center text-xs">👤</div>
+              <div>
+                <p class="text-xs font-medium text-slate-200">Ayah</p>
+                <p class="text-[10px] text-emerald-400 font-mono">Penghuni Tetap</p>
+              </div>
+            </div>
+            <button class="text-slate-500 hover:text-rose-400 text-xs"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+        <button class="w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-medium text-slate-200 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-plus"></i> Tambah Foto Wajah
+        </button>
+      </div>
+
+      <!-- Whitelist Plat Nomor Indonesia -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-semibold text-slate-200 flex items-center gap-2 text-sm">
+            <i class="fa-solid fa-car text-cyan-400"></i> Plat Nomor Kendaraan
+          </h3>
+          <span class="text-xs px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400">Indonesian ANPR</span>
+        </div>
+        <p class="text-xs text-slate-400">Nomor polisi mobil/motor keluarga yang diizinkan masuk tanpa peringatan asing.</p>
+        <div class="space-y-2 max-h-60 overflow-y-auto pr-1" id="plateList">
+          <div class="p-3 bg-slate-800/40 border border-slate-800 rounded-xl flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="px-2 py-1 bg-black border border-slate-700 rounded text-xs font-mono font-bold text-white tracking-widest">B 1234 XYZ</span>
+              <p class="text-xs text-slate-300">Avanza Ayah</p>
+            </div>
+            <button class="text-slate-500 hover:text-rose-400 text-xs"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+        <button class="w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-medium text-slate-200 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-plus"></i> Tambah Plat Kendaraan
+        </button>
+      </div>
+
+      <!-- Feed Log Kejadian Realtime -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-semibold text-slate-200 flex items-center gap-2 text-sm">
+            <i class="fa-solid fa-bell text-amber-400"></i> Log Riwayat Event
+          </h3>
+          <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">Telegram Sync</span>
+        </div>
+        <p class="text-xs text-slate-400">Aktivitas deteksi orang, kendaraan, dan status alert.</p>
+        <div class="space-y-2 max-h-60 overflow-y-auto pr-1" id="eventList">
+          <div class="p-2.5 bg-slate-800/30 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+              <span class="text-slate-300">Penghuni Pulang (Ayah)</span>
+            </div>
+            <span class="text-[10px] text-slate-500 font-mono">22:30</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

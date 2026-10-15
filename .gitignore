@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Environment Variables
+.env
+
+# Data & Persistence
+data/
+*.db
+*.sqlite3
+
+# Node / Web
+node_modules/
+dist/
+.DS_Store

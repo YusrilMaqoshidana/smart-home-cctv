@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Frigate NVR (Upstream Official Image with Intel VAAPI iGPU Offloading)
+  # ----------------------------------------------------------------------------
+  frigate:
+    container_name: cctv-frigate
+    image: ghcr.io/blakeblackshear/frigate:stable
+    restart: unless-stopped
+    shm_size: "256mb"
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./configs/frigate/config.yaml:/config/config.yaml
+      - ${DATA_STORAGE_PATH:-./data}/frigate/media:/media/frigate
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+    ports:
+      - "5000:5000"
+      - "8554:8554"
+      - "8555:8555/tcp"
+      - "8555:8555/udp"
+    env_file:
+      - .env
+    deploy:
+      resources:
+        limits:
+          cpus: "3.0"
+          memory: "6144M"
+    depends_on:
+      - mqtt
+
+  # ----------------------------------------------------------------------------
+  # 2. MQTT Broker (Eclipse Mosquitto for Realtime Frigate Events)
+  # ----------------------------------------------------------------------------
+  mqtt:
+    container_name: cctv-mqtt
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./configs/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ${DATA_STORAGE_PATH:-./data}/mosquitto:/mosquitto/data
+
+  # ----------------------------------------------------------------------------
+  # 3. Custom AI Workers (InsightFace, Indonesian ANPR & Optional Audio)
+  # ----------------------------------------------------------------------------
+  ai-workers:
+    container_name: cctv-ai-workers
+    build:
+      context: ./services/ai-workers
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ${DATA_STORAGE_PATH:-./data}/models:/app/models
+      - ${DATA_STORAGE_PATH:-./data}/db:/app/data
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: "3072M"
+
+  # ----------------------------------------------------------------------------
+  # 4. Custom Event Dispatcher & Telegram Gateway
+  # ----------------------------------------------------------------------------
+  dispatcher:
+    container_name: cctv-dispatcher
+    build:
+      context: ./services/event-dispatcher
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ${DATA_STORAGE_PATH:-./data}/db:/app/data
+      - ${DATA_STORAGE_PATH:-./data}/frigate/media:/media/frigate:ro
+    depends_on:
+      - mqtt
+      - ai-workers
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "1024M"
+
+  # ----------------------------------------------------------------------------
+  # 5. Custom Web Dashboard (Whitelist Management, Live View, Event Logs)
+  # ----------------------------------------------------------------------------
+  web-dashboard:
+    container_name: cctv-web-dashboard
+    build:
+      context: ./services/web-dashboard
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ${DATA_STORAGE_PATH:-./data}/db:/app/data
+    depends_on:
+      - dispatcher
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "1024M"
