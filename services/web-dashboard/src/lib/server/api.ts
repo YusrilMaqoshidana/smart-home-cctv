@@ -101,20 +101,55 @@ export async function fetchEvents() {
 	}
 	return [
 		{
-			id: 'ev-1',
+			id: 'ev-9281a',
+			camera: 'halaman_depan',
+			label: 'person',
+			sub_label: 'Unknown Loiterer',
+			status: 'unknown_loitering',
+			confidence: 0.944,
+			zone: 'perimeter_gerbang',
+			created_at: '2026-10-15 23:42:10'
+		},
+		{
+			id: 'ev-9280b',
 			camera: 'halaman_depan',
 			label: 'person',
 			sub_label: 'Ayah',
 			status: 'family_suppressed',
+			confidence: 0.998,
+			zone: 'teras_depan',
 			created_at: '2026-10-15 23:30:15'
 		},
 		{
-			id: 'ev-2',
+			id: 'ev-9279c',
 			camera: 'carport',
 			label: 'car',
-			sub_label: 'B 1234 XYZ',
+			sub_label: 'B 1234 XYZ (Avanza Ayah)',
 			status: 'family_vehicle',
+			confidence: 0.981,
+			zone: 'carport_barrier',
 			created_at: '2026-10-15 23:25:00'
+		},
+		{
+			id: 'ev-9278d',
+			camera: 'carport',
+			label: 'car',
+			sub_label: 'B 9999 NOP (Unknown)',
+			status: 'foreign_vehicle',
+			confidence: 0.912,
+			zone: 'carport_barrier',
+			created_at: '2026-10-15 22:50:12'
+		},
+		{
+			id: 'ev-9277e',
+			camera: 'halaman_depan',
+			label: 'person',
+			sub_label: 'Kurir Paket (Tamu)',
+			status: 'guest_detected',
+			confidence: 0.935,
+			zone: 'perimeter_gerbang',
+			created_at: '2026-10-15 21:15:40'
 		}
 	];
 }
+

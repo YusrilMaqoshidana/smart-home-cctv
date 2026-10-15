@@ -22,3 +22,8 @@ dist/
 .svelte-kit/
 build/
 .DS_Store
+
+# Local Agent Skills & Stitch Reference Downloads
+.agents/
+stitch_designs/
+
