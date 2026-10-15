@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -266,6 +267,7 @@
 								<form
 									method="POST"
 									action="?/delete"
+									use:enhance
 									onsubmit={(e) => {
 										if (!confirm(`Hapus ${face.name} dari whitelist wajah?`)) {
 											e.preventDefault();
@@ -307,7 +309,7 @@
 					<span class="font-mono text-[9px] text-primary bg-primary/10 px-1.5 py-0.2 rounded font-semibold">POST /api/faces</span>
 				</div>
 
-				<form method="POST" action="?/add" class="flex flex-col gap-3">
+				<form method="POST" action="?/add" use:enhance class="flex flex-col gap-3">
 					<div class="flex flex-col gap-1">
 						<label for="input-face-name" class="font-mono text-[10px] uppercase text-on-surface font-semibold">NAMA ANGGOTA / TAMU *</label>
 						<input

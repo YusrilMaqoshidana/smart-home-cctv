@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -164,7 +165,7 @@
 				</div>
 
 				<!-- Registration Form -->
-				<form method="POST" action="?/add" class="flex flex-col gap-3.5">
+				<form method="POST" action="?/add" use:enhance class="flex flex-col gap-3.5">
 					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 						<!-- Input Plate Number -->
 						<div class="flex flex-col gap-1">
@@ -317,6 +318,7 @@
 								<form
 									method="POST"
 									action="?/delete"
+									use:enhance
 									onsubmit={(e) => {
 										if (!confirm(`Hapus plat ${plate.plate_number} dari whitelist?`)) {
 											e.preventDefault();
