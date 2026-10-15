@@ -1,0 +1,12 @@
+.venv/
+.git/
+.agents/
+stitch_designs/
+node_modules/
+data/models/
+data/frigate/
+services/web-dashboard/node_modules/
+services/web-dashboard/build/
+services/web-dashboard/.svelte-kit/
+__pycache__/
+*.pyc

@@ -1,5 +1,5 @@
 # Stage 1: Build SvelteKit SSR app
-FROM node:22-alpine AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 COPY package*.json ./
@@ -10,7 +10,7 @@ RUN npm run build
 RUN npm prune --production
 
 # Stage 2: Production Runner
-FROM node:22-alpine AS runner
+FROM node:22-slim AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production

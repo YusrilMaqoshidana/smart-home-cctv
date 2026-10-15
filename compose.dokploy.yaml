@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ----------------------------------------------------------------------------
   # 1. Frigate NVR (Upstream Official Image with Intel VAAPI iGPU Offloading)
@@ -48,13 +46,34 @@ services:
       - ${DATA_STORAGE_PATH:-./data}/mosquitto:/mosquitto/data
 
   # ----------------------------------------------------------------------------
-  # 3. Custom AI Workers (InsightFace, Indonesian ANPR & Optional Audio)
+  # 3. Custom Backend REST API (Face Whitelist, Plates, Event Logs Database)
+  # ----------------------------------------------------------------------------
+  backend-api:
+    container_name: cctv-backend-api
+    build:
+      context: .
+      dockerfile: ./services/web_dashboard/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ${DATA_STORAGE_PATH:-./data}/db:/app/data
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "1024M"
+
+  # ----------------------------------------------------------------------------
+  # 4. Custom AI Workers (InsightFace, Indonesian ANPR & Optional Audio)
   # ----------------------------------------------------------------------------
   ai-workers:
     container_name: cctv-ai-workers
     build:
-      context: ./services/ai-workers
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./services/ai_workers/Dockerfile
     restart: unless-stopped
     env_file:
       - .env
@@ -68,13 +87,13 @@ services:
           memory: "3072M"
 
   # ----------------------------------------------------------------------------
-  # 4. Custom Event Dispatcher & Telegram Gateway
+  # 5. Custom Event Dispatcher & Telegram Gateway
   # ----------------------------------------------------------------------------
   dispatcher:
     container_name: cctv-dispatcher
     build:
-      context: ./services/event-dispatcher
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./services/dispatcher/Dockerfile
     restart: unless-stopped
     env_file:
       - .env
@@ -83,6 +102,7 @@ services:
       - ${DATA_STORAGE_PATH:-./data}/frigate/media:/media/frigate:ro
     depends_on:
       - mqtt
+      - backend-api
       - ai-workers
     deploy:
       resources:
@@ -91,7 +111,7 @@ services:
           memory: "1024M"
 
   # ----------------------------------------------------------------------------
-  # 5. Custom Web Dashboard (Whitelist Management, Live View, Event Logs)
+  # 6. SvelteKit SSR Web Dashboard (Tactical Surveillance Hub)
   # ----------------------------------------------------------------------------
   web-dashboard:
     container_name: cctv-web-dashboard
@@ -101,11 +121,14 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    environment:
+      - BACKEND_API_URL=http://backend-api:8000
+      - NODE_ENV=production
+      - PORT=3000
     env_file:
       - .env
-    volumes:
-      - ${DATA_STORAGE_PATH:-./data}/db:/app/data
     depends_on:
+      - backend-api
       - dispatcher
     deploy:
       resources:
