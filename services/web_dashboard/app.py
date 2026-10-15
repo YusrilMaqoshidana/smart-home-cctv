@@ -137,3 +137,15 @@ class DashboardAPIApp:
         ]
         start_response(status_text, headers)
         return [response_body]
+
+
+if __name__ == "__main__":
+    import os
+    from wsgiref.simple_server import make_server
+    db_path = os.getenv("DATABASE_PATH", "data/cctv.db")
+    db_instance = DatabaseManager(db_path)
+    dashboard_app = DashboardAPIApp(db_instance)
+    port = int(os.getenv("PORT", "8000"))
+    print(f"Starting Backend API Server on http://0.0.0.0:{port} (DB: {db_path})...")
+    with make_server("0.0.0.0", port, dashboard_app) as httpd:
+        httpd.serve_forever()
