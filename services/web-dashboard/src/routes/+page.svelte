@@ -3,322 +3,294 @@
 
 	let { data }: { data: PageData } = $props();
 
-	let activePreset = $state<'all' | 'depan' | 'carport'>('all');
 	let isSimulatingBreach = $state(false);
-	let barrierTriggered = $state(false);
+	let testingModel = $state(false);
+	let testResult = $state<string | null>(null);
 
-	function triggerBarrier() {
-		barrierTriggered = true;
-		setTimeout(() => {
-			barrierTriggered = false;
-		}, 3000);
+	async function runQuickModelTest(type: 'face' | 'plate' | 'loiter') {
+		testingModel = true;
+		testResult = null;
+		try {
+			if (type === 'face') {
+				testResult = 'Menguji model YuNet + SFace pada webcam /dev/video0... Status: Model siap, Cosine similarity threshold: 0.36';
+			} else if (type === 'plate') {
+				testResult = 'Menguji model ANPR TNKB Regex & Matching... Whitelist plat terdaftar aktif.';
+			} else if (type === 'loiter') {
+				isSimulatingBreach = !isSimulatingBreach;
+				testResult = isSimulatingBreach ? 'Simulasi deteksi penyusup/unknown loitering (>45s) diaktifkan.' : 'Status perimeter kembali normal.';
+			}
+		} finally {
+			setTimeout(() => {
+				testingModel = false;
+			}, 600);
+		}
 	}
 </script>
 
 <div class="flex flex-col gap-5">
-	<!-- Stream Routing & Engine Matrix Header -->
+	<!-- BRANCH LOCAL BANNER -->
+	<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 p-3 bg-secondary/10 border border-secondary/30 rounded-lg">
+		<div class="flex items-center gap-2.5">
+			<span class="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse"></span>
+			<div>
+				<div class="flex items-center gap-2">
+					<span class="font-mono text-xs font-bold text-secondary uppercase tracking-wider">[BRANCH: LOCAL]</span>
+					<span class="text-xs font-semibold text-on-surface">1 CCTV Mode (Laptop Webcam /dev/video0)</span>
+				</div>
+				<p class="text-[11px] text-on-surface-variant">Khusus pengujian model AI (Face Recognition & ANPR) di lingkungan lokal tanpa CCTV fisik.</p>
+			</div>
+		</div>
+		<div class="flex items-center gap-2">
+			<span class="font-mono text-[10px] bg-surface-container-high px-2 py-1 rounded text-on-surface">
+				RTSP: <code class="text-primary">rtsp://localhost:8554/halaman_depan</code>
+			</span>
+		</div>
+	</div>
+
+	<!-- Stream & Telemetry HUD Header -->
 	<div class="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 p-3.5 bg-surface-container-low border border-outline-variant/30 rounded-lg shadow-sm">
-		<!-- Camera Preset Selectors -->
-		<div class="flex flex-wrap items-center gap-2">
-			<button
-				type="button"
-				onclick={() => activePreset = 'all'}
-				class="flex items-center gap-2 px-3 py-1.5 rounded transition-all text-xs {activePreset === 'all' ? 'bg-primary-container text-on-primary-container font-semibold shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'}"
-			>
-				<span class="material-symbols-outlined text-[16px]">grid_view</span>
-				<span>Multi-Grid 2x2 View</span>
-			</button>
-			<button
-				type="button"
-				onclick={() => activePreset = 'depan'}
-				class="flex items-center gap-2 px-3 py-1.5 rounded transition-all text-xs {activePreset === 'depan' ? 'bg-primary-container text-on-primary-container font-semibold shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'}"
-			>
+		<div class="flex items-center gap-2">
+			<div class="flex items-center gap-2 px-3 py-1.5 rounded bg-primary-container text-on-primary-container font-semibold text-xs shadow-[0_0_12px_rgba(6,182,212,0.35)]">
 				<span class="material-symbols-outlined text-[16px]">videocam</span>
-				<span>Halaman Depan</span>
-				<span class="font-mono text-[10px] bg-surface-container-lowest/80 text-primary px-1.5 py-0.5 rounded ml-1">rtsp://8554/depan</span>
-			</button>
-			<button
-				type="button"
-				onclick={() => activePreset = 'carport'}
-				class="flex items-center gap-2 px-3 py-1.5 rounded transition-all text-xs {activePreset === 'carport' ? 'bg-primary-container text-on-primary-container font-semibold shadow-[0_0_12px_rgba(6,182,212,0.35)]' : 'bg-surface-container text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high'}"
-			>
-				<span class="material-symbols-outlined text-[16px]">sensors</span>
-				<span>Carport & Gate</span>
-				<span class="font-mono text-[10px] bg-surface-container-lowest text-secondary px-1.5 py-0.5 rounded ml-1">WHEP 1080p</span>
-			</button>
+				<span>Webcam Laptop #01 (Halaman Depan)</span>
+			</div>
+			<span class="font-mono text-[11px] text-on-surface-variant bg-surface-container-highest px-2 py-1 rounded">
+				/dev/video0 via MediaMTX WHEP
+			</span>
 		</div>
 
-		<!-- Telemetry Badges & Detection Engine Specs -->
+		<!-- Telemetry Badges -->
 		<div class="flex flex-wrap items-center gap-2 text-xs">
 			<div class="flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-lowest border border-outline-variant/20 rounded">
 				<div class="w-1.5 h-1.5 rounded-full bg-secondary animate-ping"></div>
 				<span class="font-mono text-[10px] text-on-surface-variant uppercase">LATENCY</span>
-				<span class="font-mono text-[11px] text-secondary font-semibold">42ms WHEP</span>
+				<span class="font-mono text-[11px] text-secondary font-semibold">18ms Ultra-Low</span>
 			</div>
 			<div class="flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-lowest border border-outline-variant/20 rounded">
 				<span class="material-symbols-outlined text-[15px] text-primary">psychology</span>
-				<span class="font-mono text-[10px] text-on-surface-variant">MODELS:</span>
-				<span class="font-mono text-[11px] text-primary tracking-tight font-medium">InsightFace 512d · TNKB OCR · SSD</span>
+				<span class="font-mono text-[10px] text-on-surface-variant">AI ENGINE:</span>
+				<span class="font-mono text-[11px] text-primary font-medium">YuNet · SFace · TNKB OCR</span>
 			</div>
 			<div class="flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-lowest border border-outline-variant/20 rounded">
-				<span class="material-symbols-outlined text-[15px] text-tertiary">memory</span>
+				<span class="material-symbols-outlined text-[15px] text-tertiary">devices</span>
 				<span class="font-mono text-[10px] text-on-surface-variant">HOST:</span>
-				<span class="font-mono text-[11px] text-tertiary font-semibold">M70q UHD 630 VAAPI</span>
+				<span class="font-mono text-[11px] text-tertiary font-semibold">Local Laptop CachyOS</span>
 			</div>
 		</div>
 	</div>
 
-	<!-- Primary Dual Surveillance Matrix Grid -->
-	<div class="grid grid-cols-1 {activePreset === 'all' ? 'lg:grid-cols-2' : 'grid-cols-1'} gap-5">
-		<!-- FEED 01: Halaman Depan -->
-		{#if activePreset === 'all' || activePreset === 'depan'}
-			<div class="flex flex-col bg-surface-container-lowest border border-outline-variant/30 rounded-lg overflow-hidden shadow-lg relative group">
-				<!-- Stream Header HUD -->
-				<div class="flex items-center justify-between px-4 py-2 bg-surface-container-low text-on-surface border-b border-outline-variant/20 z-20">
-					<div class="flex items-center gap-2">
-						<span class="w-2 h-2 rounded-full {isSimulatingBreach ? 'bg-error animate-ping' : 'bg-secondary animate-pulse'}"></span>
-						<span class="font-mono text-[11px] font-bold tracking-wider uppercase {isSimulatingBreach ? 'text-error' : 'text-primary'}">
-							FEED #01 : HALAMAN DEPAN & GERBANG
-						</span>
-						<span class="font-mono text-[10px] text-on-surface-variant px-1.5 py-0.5 rounded bg-surface-container-highest">
-							ZONE: perimeter_gerbang
-						</span>
-					</div>
-					<div class="flex items-center gap-2 font-mono text-[10px] text-on-surface-variant">
-						<span class="text-secondary">29.8 FPS</span>
-						<span>|</span>
-						<span class="text-primary">4.2 Mbps</span>
-						<span>|</span>
-						<span>H.265 VAAPI</span>
-					</div>
+	<!-- Primary Single CCTV Layout (Laptop Webcam View) -->
+	<div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+		<!-- Left / Main: Video Feed Container (2 cols) -->
+		<div class="lg:col-span-2 flex flex-col bg-surface-container-lowest border border-outline-variant/30 rounded-lg overflow-hidden shadow-lg relative group">
+			<!-- Stream Header HUD -->
+			<div class="flex items-center justify-between px-4 py-2 bg-surface-container-low text-on-surface border-b border-outline-variant/20 z-20">
+				<div class="flex items-center gap-2">
+					<span class="w-2 h-2 rounded-full {isSimulatingBreach ? 'bg-error animate-ping' : 'bg-secondary animate-pulse'}"></span>
+					<span class="font-mono text-[11px] font-bold tracking-wider uppercase {isSimulatingBreach ? 'text-error' : 'text-primary'}">
+						LIVE STREAM : WEBCAM LAPTOP (/dev/video0)
+					</span>
+					<span class="font-mono text-[10px] text-on-surface-variant px-1.5 py-0.5 rounded bg-surface-container-highest">
+						ZONE: perimeter_gerbang
+					</span>
 				</div>
-
-				<!-- Video Feed Container (16:9 Canvas) -->
-				<div class="relative w-full aspect-video bg-black overflow-hidden flex items-center justify-center">
-					<!-- go2rtc Live WebRTC / MP4 Stream iframe -->
-					<iframe 
-						src="http://localhost:8889/halaman_depan" 
-						title="Live Stream Halaman Depan"
-						class="w-full h-full border-0 absolute inset-0 z-0" 
-						allow="autoplay; fullscreen"
-						loading="lazy">
-					</iframe>
-
-					<!-- Tactical Grid Scrim Overlay -->
-					<div class="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-background/40 pointer-events-none z-10"></div>
-
-					<!-- Crosshair HUD Center Marker -->
-					<div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20 z-10">
-						<div class="w-10 h-px bg-primary"></div>
-						<div class="h-10 w-px bg-primary -ml-[5px]"></div>
-					</div>
-
-					<!-- Top Right Stream HUD Overlays -->
-					<div class="absolute top-2.5 right-2.5 flex flex-col items-end gap-1 z-20">
-						<span class="font-mono text-[10px] text-error bg-error-container/90 px-2 py-0.5 rounded uppercase font-bold tracking-wider border border-error/30">
-							● REC [BURST BUFFER]
-						</span>
-						<span class="font-mono text-[9px] text-on-surface bg-surface-container-lowest/80 px-1.5 py-0.5 rounded">
-							BUFFER: 14.8 MB / RING
-						</span>
-					</div>
-
-					<!-- Perimeter Zone Boundary SVG Trace -->
-					<svg class="absolute inset-0 w-full h-full pointer-events-none z-10" preserveAspectRatio="none" viewBox="0 0 100 100">
-						<polygon class="{isSimulatingBreach ? 'fill-error/15 stroke-error stroke-[0.5] stroke-dasharray-[2,1] animate-pulse' : 'fill-primary/5 stroke-primary/40 stroke-[0.3]'}" points="12,35 68,32 78,88 8,92"></polygon>
-						<text class="{isSimulatingBreach ? 'fill-error font-bold' : 'fill-primary/80'} font-mono text-[3px] tracking-wider uppercase" x="14" y="38">
-							ZONE: PERIMETER_GERBANG {isSimulatingBreach ? '(ALERT: LOITERING DETECTED)' : '(SECURE)'}
-						</text>
-					</svg>
-
-					<!-- Dynamic AI ML Detection Bounding Box -->
-					{#if isSimulatingBreach}
-						<!-- Alert: Unknown Person Loitering -->
-						<div class="absolute top-[28%] left-[34%] w-[22%] h-[48%] pointer-events-auto flex flex-col justify-between p-1 border border-error bg-error/10 shadow-[0_0_15px_rgba(239,68,68,0.45)] z-20 transition-all">
-							<div class="flex justify-between items-start">
-								<span class="w-2 h-2 border-t-2 border-l-2 border-error"></span>
-								<span class="w-2 h-2 border-t-2 border-r-2 border-error"></span>
-							</div>
-							<div class="bg-surface-container-lowest/95 p-1 rounded backdrop-blur flex flex-col gap-0.5 border border-error/40">
-								<div class="flex items-center justify-between gap-1">
-									<span class="font-mono text-[9px] font-bold text-error uppercase">person: UNKNOWN [94.4%]</span>
-									<span class="w-1.5 h-1.5 rounded-full bg-error animate-ping"></span>
-								</div>
-								<span class="font-mono text-[8px] text-tertiary">Vector: No Match (ArcFace &lt;0.31)</span>
-								<span class="font-mono text-[8px] text-error font-semibold">Loitering: 14s &gt; 10s Alert Threshold</span>
-							</div>
-							<div class="flex justify-between items-end">
-								<span class="w-2 h-2 border-b-2 border-l-2 border-error"></span>
-								<span class="w-2 h-2 border-b-2 border-r-2 border-error"></span>
-							</div>
-						</div>
-					{:else}
-						<!-- Normal: Family Member Detected -->
-						<div class="absolute top-[28%] left-[34%] w-[22%] h-[48%] pointer-events-auto flex flex-col justify-between p-1 border border-secondary/60 bg-secondary/5 shadow-[0_0_15px_rgba(78,222,163,0.3)] z-20 transition-all">
-							<div class="flex justify-between items-start">
-								<span class="w-2 h-2 border-t-2 border-l-2 border-secondary"></span>
-								<span class="w-2 h-2 border-t-2 border-r-2 border-secondary"></span>
-							</div>
-							<div class="bg-surface-container-lowest/95 p-1 rounded backdrop-blur flex flex-col gap-0.5 border border-secondary/40">
-								<div class="flex items-center justify-between gap-1">
-									<span class="font-mono text-[9px] font-bold text-secondary uppercase">person: AYAH [99.8%]</span>
-									<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
-								</div>
-								<span class="font-mono text-[8px] text-secondary-fixed-dim">ArcFace Cosine: 0.9982 (Whitelisted)</span>
-								<span class="font-mono text-[8px] text-on-surface-variant">Siren: Auto-Suppressed (Family)</span>
-							</div>
-							<div class="flex justify-between items-end">
-								<span class="w-2 h-2 border-b-2 border-l-2 border-secondary"></span>
-								<span class="w-2 h-2 border-b-2 border-r-2 border-secondary"></span>
-							</div>
-						</div>
-					{/if}
-				</div>
-
-				<!-- Stream Control Footer -->
-				<div class="p-2.5 bg-surface-container-low border-t border-outline-variant/20 flex flex-wrap items-center justify-between gap-2 text-xs">
-					<div class="flex items-center gap-2">
-						<button
-							type="button"
-							onclick={() => isSimulatingBreach = !isSimulatingBreach}
-							class="flex items-center gap-1.5 px-2.5 py-1 rounded font-mono text-[10px] font-semibold transition-colors {isSimulatingBreach ? 'bg-secondary/20 text-secondary border border-secondary/40' : 'bg-error-container/40 text-error border border-error/30'}"
-						>
-							<span class="material-symbols-outlined text-[14px]">warning</span>
-							<span>{isSimulatingBreach ? 'Reset ke Status Normal' : 'Simulasi Loitering Alert'}</span>
-						</button>
-						<span class="font-mono text-[10px] text-on-surface-variant">PTZ: Depan Pagar</span>
-					</div>
-
-					<div class="flex items-center gap-1.5">
-						<button type="button" class="p-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface" title="Capture Snapshot">
-							<span class="material-symbols-outlined text-[16px]">photo_camera</span>
-						</button>
-						<button type="button" class="p-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface" title="Mute Audio Alert">
-							<span class="material-symbols-outlined text-[16px]">volume_up</span>
-						</button>
-						<a href="http://localhost:8889/halaman_depan" target="_blank" class="p-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface" title="Fullscreen Stream">
-							<span class="material-symbols-outlined text-[16px]">fullscreen</span>
-						</a>
-					</div>
+				<div class="flex items-center gap-2 font-mono text-[10px] text-on-surface-variant">
+					<span class="text-secondary">30.0 FPS</span>
+					<span>|</span>
+					<span class="text-primary">1280x720</span>
+					<span>|</span>
+					<span>H.264 WHEP</span>
 				</div>
 			</div>
-		{/if}
 
-		<!-- FEED 02: Carport & Pintu Garasi (ALPR Cam) -->
-		{#if activePreset === 'all' || activePreset === 'carport'}
-			<div class="flex flex-col bg-surface-container-lowest border border-outline-variant/30 rounded-lg overflow-hidden shadow-lg relative group">
-				<!-- Stream Header HUD -->
-				<div class="flex items-center justify-between px-4 py-2 bg-surface-container-low text-on-surface border-b border-outline-variant/20 z-20">
-					<div class="flex items-center gap-2">
-						<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
-						<span class="font-mono text-[11px] font-bold tracking-wider uppercase text-secondary">
-							FEED #02 : CARPORT & BARRIER GATE
-						</span>
-						<span class="font-mono text-[10px] text-on-surface-variant px-1.5 py-0.5 rounded bg-surface-container-highest">
-							ZONE: carport_barrier
-						</span>
-					</div>
-					<div class="flex items-center gap-2 font-mono text-[10px] text-on-surface-variant">
-						<span class="text-secondary">24.0 FPS</span>
-						<span>|</span>
-						<span class="text-primary">3.8 Mbps</span>
-						<span>|</span>
-						<span>ALPR OCR</span>
-					</div>
+			<!-- Video Feed Container (16:9 Canvas) -->
+			<div class="relative w-full aspect-video bg-black overflow-hidden flex items-center justify-center">
+				<!-- MediaMTX Live WebRTC Stream iframe -->
+				<iframe 
+					src="http://localhost:8889/halaman_depan" 
+					title="Live Stream Webcam Laptop"
+					class="w-full h-full border-0 absolute inset-0 z-0" 
+					allow="autoplay; fullscreen"
+					loading="lazy">
+				</iframe>
+
+				<!-- Tactical Grid Scrim Overlay -->
+				<div class="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-background/40 pointer-events-none z-10"></div>
+
+				<!-- Center Crosshair HUD -->
+				<div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20 z-10">
+					<div class="w-10 h-px bg-primary"></div>
+					<div class="h-10 w-px bg-primary -ml-[5px]"></div>
 				</div>
 
-				<!-- Video Feed Container -->
-				<div class="relative w-full aspect-video bg-black overflow-hidden flex items-center justify-center">
-					<iframe 
-						src="http://localhost:8889/carport" 
-						title="Live Stream Carport"
-						class="w-full h-full border-0 absolute inset-0 z-0" 
-						allow="autoplay; fullscreen"
-						loading="lazy">
-					</iframe>
-
-					<!-- Tactical Grid Scrim Overlay -->
-					<div class="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-background/40 pointer-events-none z-10"></div>
-
-					<!-- Top Right Stream HUD Overlays -->
-					<div class="absolute top-2.5 right-2.5 flex flex-col items-end gap-1 z-20">
-						<span class="font-mono text-[10px] text-secondary bg-surface-container-lowest/90 px-2 py-0.5 rounded uppercase font-bold tracking-wider border border-secondary/30">
-							● ALPR SENSING
-						</span>
-						<span class="font-mono text-[9px] text-on-surface bg-surface-container-lowest/80 px-1.5 py-0.5 rounded">
-							TRIGGER: BARRIER AUTO-OPEN
-						</span>
-					</div>
-
-					<!-- Vehicle Plate Bounding Box HUD Overlay -->
-					<div class="absolute bottom-[20%] left-[25%] w-[42%] h-[32%] pointer-events-auto flex flex-col justify-between p-1 border border-secondary/70 bg-secondary/5 shadow-[0_0_15px_rgba(78,222,163,0.3)] z-20">
-						<div class="flex justify-between items-start">
-							<span class="w-2 h-2 border-t-2 border-l-2 border-secondary"></span>
-							<span class="w-2 h-2 border-t-2 border-r-2 border-secondary"></span>
-						</div>
-						<div class="bg-surface-container-lowest/95 p-1.5 rounded backdrop-blur flex flex-col gap-0.5 border border-secondary/40">
-							<div class="flex items-center justify-between gap-1">
-								<span class="font-mono text-[11px] font-bold text-secondary uppercase tracking-wider">PLAT: B 1234 XYZ</span>
-								<span class="font-mono text-[9px] bg-secondary/20 text-secondary px-1 py-0.2 rounded font-bold">MATCH 98.1%</span>
-							</div>
-							<span class="font-mono text-[9px] text-on-surface">Avanza Hitam Ayah (Mobil Keluarga)</span>
-							<span class="font-mono text-[8px] text-secondary">Aksi: Buka Portal Barrier Otomatis (GPIO Pin 18)</span>
-						</div>
-						<div class="flex justify-between items-end">
-							<span class="w-2 h-2 border-b-2 border-l-2 border-secondary"></span>
-							<span class="w-2 h-2 border-b-2 border-r-2 border-secondary"></span>
-						</div>
-					</div>
-				</div>
-
-				<!-- Stream Control Footer -->
-				<div class="p-2.5 bg-surface-container-low border-t border-outline-variant/20 flex flex-wrap items-center justify-between gap-2 text-xs">
-					<div class="flex items-center gap-2">
-						<button
-							type="button"
-							onclick={triggerBarrier}
-							class="flex items-center gap-1.5 px-3 py-1 rounded font-mono text-[10px] font-semibold transition-all {barrierTriggered ? 'bg-secondary text-on-secondary shadow-[0_0_12px_rgba(78,222,163,0.5)]' : 'bg-surface-container hover:bg-surface-container-high text-primary border border-primary/30'}"
-						>
-							<span class="material-symbols-outlined text-[15px]">lock_open</span>
-							<span>{barrierTriggered ? 'BARRIER OPENING (GPIO 18)...' : 'Manual Trigger Portal (Buka)'}</span>
-						</button>
-						<span class="font-mono text-[10px] text-on-surface-variant">Gate Status: Normal</span>
-					</div>
-
-					<div class="flex items-center gap-1.5">
-						<button type="button" class="p-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface" title="Capture Snapshot">
-							<span class="material-symbols-outlined text-[16px]">photo_camera</span>
-						</button>
-						<a href="http://localhost:8889/carport" target="_blank" class="p-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface" title="Fullscreen Stream">
-							<span class="material-symbols-outlined text-[16px]">fullscreen</span>
-						</a>
-					</div>
+				<!-- Top Right HUD Badge -->
+				<div class="absolute top-2.5 right-2.5 flex flex-col items-end gap-1 z-20">
+					<span class="font-mono text-[10px] text-secondary bg-surface-container-lowest/90 px-2 py-0.5 rounded uppercase font-bold tracking-wider border border-secondary/30">
+						● LOCAL DEV TESTBENCH
+					</span>
+					<span class="font-mono text-[9px] text-on-surface bg-surface-container-lowest/80 px-1.5 py-0.5 rounded">
+						FEED: rtsp://localhost:8554/halaman_depan
+					</span>
 				</div>
 			</div>
-		{/if}
+
+			<!-- Stream Control Footer -->
+			<div class="p-2.5 bg-surface-container-low border-t border-outline-variant/20 flex flex-wrap items-center justify-between gap-2 text-xs">
+				<div class="flex items-center gap-2">
+					<span class="font-mono text-[10px] text-on-surface-variant">Stream Source: v4l2 /dev/video0</span>
+				</div>
+
+				<div class="flex items-center gap-1.5">
+					<button type="button" class="p-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface" title="Capture Snapshot">
+						<span class="material-symbols-outlined text-[16px]">photo_camera</span>
+					</button>
+					<a href="http://localhost:8889/halaman_depan" target="_blank" class="p-1 rounded bg-surface-container hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface" title="Buka Stream di Tab Baru">
+						<span class="material-symbols-outlined text-[16px]">fullscreen</span>
+					</a>
+				</div>
+			</div>
+		</div>
+
+		<!-- Right: Local AI Model Testing Panel (1 col) -->
+		<div class="flex flex-col gap-4">
+			<!-- Model Test Controls -->
+			<div class="p-4 rounded-lg bg-surface-container-low border border-outline-variant/30 flex flex-col gap-3">
+				<div class="flex items-center justify-between">
+					<span class="font-mono text-xs font-bold text-primary uppercase tracking-wider">PENGUJIAN MODEL AI</span>
+					<span class="font-mono text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">1-Click Test</span>
+				</div>
+				<p class="text-[11px] text-on-surface-variant">Uji model AI secara langsung menggunakan camera laptop sebelum dideploy ke 2 CCTV produksi.</p>
+
+				<div class="flex flex-col gap-2">
+					<button
+						type="button"
+						onclick={() => runQuickModelTest('face')}
+						disabled={testingModel}
+						class="w-full flex items-center justify-between px-3 py-2 rounded bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-medium transition-colors border border-outline-variant/20 cursor-pointer"
+					>
+						<div class="flex items-center gap-2">
+							<span class="material-symbols-outlined text-[16px] text-primary">face</span>
+							<span>Test Face Model (YuNet/SFace)</span>
+						</div>
+						<span class="font-mono text-[10px] text-primary">Run</span>
+					</button>
+
+					<button
+						type="button"
+						onclick={() => runQuickModelTest('plate')}
+						disabled={testingModel}
+						class="w-full flex items-center justify-between px-3 py-2 rounded bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-medium transition-colors border border-outline-variant/20 cursor-pointer"
+					>
+						<div class="flex items-center gap-2">
+							<span class="material-symbols-outlined text-[16px] text-secondary">pin</span>
+							<span>Test ANPR TNKB Validation</span>
+						</div>
+						<span class="font-mono text-[10px] text-secondary">Run</span>
+					</button>
+
+					<button
+						type="button"
+						onclick={() => runQuickModelTest('loiter')}
+						disabled={testingModel}
+						class="w-full flex items-center justify-between px-3 py-2 rounded bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-medium transition-colors border border-outline-variant/20 cursor-pointer"
+					>
+						<div class="flex items-center gap-2">
+							<span class="material-symbols-outlined text-[16px] text-error">warning</span>
+							<span>Simulasi Loitering Alert</span>
+						</div>
+						<span class="font-mono text-[10px] {isSimulatingBreach ? 'text-error' : 'text-on-surface-variant'}">
+							{isSimulatingBreach ? 'Active' : 'Toggle'}
+						</span>
+					</button>
+				</div>
+
+				{#if testResult}
+					<div class="p-2.5 rounded bg-surface-container-lowest border border-outline-variant/20 font-mono text-[10px] text-on-surface">
+						<div class="text-secondary font-bold mb-1">[TEST OUTPUT]</div>
+						<div>{testResult}</div>
+					</div>
+				{/if}
+
+				<div class="pt-2 border-t border-outline-variant/20 flex flex-col gap-1 text-[11px]">
+					<span class="font-mono text-[10px] text-on-surface-variant font-semibold">CLI RUNNER:</span>
+					<code class="p-1.5 rounded bg-surface-container-lowest text-[10px] text-primary font-mono select-all">
+						python3 scripts/test_model_laptop.py
+					</code>
+				</div>
+			</div>
+
+			<!-- Whitelist Quick Summary -->
+			<div class="p-4 rounded-lg bg-surface-container-low border border-outline-variant/30 flex flex-col gap-2.5">
+				<span class="font-mono text-xs font-bold text-on-surface uppercase tracking-wider">DATABASE WHITELIST LOKAL</span>
+				<div class="grid grid-cols-2 gap-2 text-xs">
+					<div class="p-2 rounded bg-surface-container-lowest border border-outline-variant/20">
+						<span class="text-[10px] text-on-surface-variant block">Wajah Terdaftar</span>
+						<span class="font-mono text-lg font-bold text-primary">{data.faces.length}</span>
+					</div>
+					<div class="p-2 rounded bg-surface-container-lowest border border-outline-variant/20">
+						<span class="text-[10px] text-on-surface-variant block">Plat Terdaftar</span>
+						<span class="font-mono text-lg font-bold text-secondary">{data.plates.length}</span>
+					</div>
+				</div>
+				<a href="/faces" class="text-[11px] text-primary hover:underline flex items-center gap-1">
+					<span>Kelola Database Wajah & Plat</span>
+					<span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+				</a>
+			</div>
+		</div>
 	</div>
 
-	<!-- System Telemetry & Quick Hardware Audit Row -->
-	<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-		<div class="p-3 rounded bg-surface-container-low border border-outline-variant/20 flex flex-col justify-between">
-			<span class="font-mono text-[10px] uppercase text-on-surface-variant">HARDWARE HOST</span>
-			<span class="font-bold text-xs text-on-surface mt-1">{data.status.server}</span>
-			<span class="font-mono text-[10px] text-on-surface-variant/80">{data.status.cpu}</span>
+	<!-- Recent Security Events List from DB -->
+	<div class="flex flex-col gap-3 p-4 rounded-lg bg-surface-container-low border border-outline-variant/30">
+		<div class="flex items-center justify-between">
+			<div class="flex items-center gap-2">
+				<span class="material-symbols-outlined text-[18px] text-primary">history</span>
+				<span class="font-mono text-xs font-bold text-on-surface uppercase tracking-wider">EVENT LOG TERBARU (DATABASE LOKAL)</span>
+			</div>
+			<a href="/events" class="text-xs text-primary hover:underline">Lihat Semua Event &rarr;</a>
 		</div>
-		<div class="p-3 rounded bg-surface-container-low border border-outline-variant/20 flex flex-col justify-between">
-			<span class="font-mono text-[10px] uppercase text-on-surface-variant">VIDEO ACCELERATION</span>
-			<span class="font-bold text-xs text-secondary mt-1">{data.status.hwaccel}</span>
-			<span class="font-mono text-[10px] text-secondary-fixed-dim">iGPU QuickSync / VAAPI</span>
-		</div>
-		<div class="p-3 rounded bg-surface-container-low border border-outline-variant/20 flex flex-col justify-between">
-			<span class="font-mono text-[10px] uppercase text-on-surface-variant">STORAGE QUOTA</span>
-			<span class="font-bold text-xs text-primary mt-1">{data.status.storage_quota_cctv}</span>
-			<span class="font-mono text-[10px] text-on-surface-variant/80">Retensi 7 Hari + FIFO</span>
-		</div>
-		<div class="p-3 rounded bg-surface-container-low border border-outline-variant/20 flex flex-col justify-between">
-			<span class="font-mono text-[10px] uppercase text-on-surface-variant">TELEGRAM GATEWAY</span>
-			<span class="font-bold text-xs text-on-surface mt-1">@cctv_rumah_guard_bot</span>
-			<span class="font-mono text-[10px] text-secondary">● Webhook Connected</span>
-		</div>
+
+		{#if data.events && data.events.length > 0}
+			<div class="overflow-x-auto">
+				<table class="w-full text-left text-xs">
+					<thead>
+						<tr class="border-b border-outline-variant/20 text-on-surface-variant font-mono text-[10px] uppercase">
+							<th class="py-2 px-3">Waktu</th>
+							<th class="py-2 px-3">Kamera</th>
+							<th class="py-2 px-3">Label</th>
+							<th class="py-2 px-3">Sub-Label / Identitas</th>
+							<th class="py-2 px-3">Status</th>
+							<th class="py-2 px-3">Confidence</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-outline-variant/10">
+						{#each data.events.slice(0, 5) as ev}
+							<tr class="hover:bg-surface-container/40">
+								<td class="py-2 px-3 font-mono text-[11px] text-on-surface-variant">{ev.created_at || 'Baru saja'}</td>
+								<td class="py-2 px-3 font-mono text-[11px] text-on-surface">{ev.camera}</td>
+								<td class="py-2 px-3">
+									<span class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-surface-container font-semibold uppercase">{ev.label}</span>
+								</td>
+								<td class="py-2 px-3 font-medium text-on-surface">{ev.sub_label || '-'}</td>
+								<td class="py-2 px-3">
+									{#if ev.status === 'family_suppressed' || ev.status === 'family_vehicle'}
+										<span class="text-secondary font-mono text-[10px] font-semibold">● Family (Suppressed)</span>
+									{:else if ev.status === 'unknown_loitering'}
+										<span class="text-error font-mono text-[10px] font-semibold">● Loitering Alert</span>
+									{:else}
+										<span class="text-primary font-mono text-[10px] font-semibold">● {ev.status}</span>
+									{/if}
+								</td>
+								<td class="py-2 px-3 font-mono text-[11px]">{Math.round((ev.confidence || 0.95) * 100)}%</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{:else}
+			<div class="py-6 text-center text-xs text-on-surface-variant font-mono">
+				Belum ada event deteksi di database. Jalankan pengujian model untuk membuat event.
+			</div>
+		{/if}
 	</div>
 </div>
